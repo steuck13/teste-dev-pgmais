@@ -2,7 +2,10 @@ import re
 import requests
 from datetime import datetime
 
+# constants used by the class
 BLACKLIST_URL = 'https://front-test-pg.herokuapp.com/blacklist/'
+MAX_SIZE = 141
+SP_DDD = 11
 
 # List of valid DDD numbers
 ddd_list = [11, 12, 13, 14, 15, 16, 17, 18,
@@ -103,7 +106,7 @@ class Message:
 
         Retuns True if the DDD is from Sao Paulo
         """
-        return self.ddd == 11
+        return self.ddd == SP_DDD
 
     def _isvalid_schedule(self):
         """ Returns a boolean
@@ -120,7 +123,7 @@ class Message:
 
         Returns True if the message respect the size limit
         """
-        return len(self.content) < 141
+        return len(self.content) < MAX_SIZE
 
     def _ison_blacklist(self):
         """Returns a boolean
@@ -148,8 +151,9 @@ class Message:
         schedule = self._isvalid_schedule()
         size = self._isvalid_size()
         blacklist = self._ison_blacklist()
+        fromsp = not self._isfrom_sp()
 
-        self.valid = (number and schedule and size and blacklist)
+        self.valid = (number and schedule and size and blacklist and fromsp)
         return self.valid
 
     def phone(self):
