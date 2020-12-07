@@ -30,7 +30,7 @@ def accepts(*types):
 
         def new_function(*args, **kwds):
             for(a, t) in zip(args, types):
-                ret_str = f"arg {a} does not match {t}"
+                ret_str = f'arg {a} does not match {t}'
                 assert isinstance(a, t), ret_str
             return f(*args, **kwds)
         new_function.__name__ = f.__name__
@@ -63,19 +63,20 @@ class Message:
         Keyword arguments:
         string -- a string containing comma separated values
         """
-        try:
-            args = msg.split(';')
-            msg_id = args[0]
-            ddd = int(args[1])
-            number = int(args[2])
-            cpny = args[3]
-            schedule = args[4]
+        args = msg.split(';')
+        msg_id = args[0]
+        ddd = int(args[1])
+        number = int(args[2])
+        cpny = args[3]
+        schedule = args[4]
+
+        # if the message contains our separator ';'
+        if len(args) > 6:
             content = ''.join(args[5:])
-            return cls(msg_id, ddd, number, cpny, schedule, content)
-        except Exception as inst:
-            print(type(inst))
-            print(inst.args)
-            raise(inst)
+        else:
+            content = args[5]
+
+        return cls(msg_id, ddd, number, cpny, schedule, content)
 
     def _isvalid_ddd(self):
         """Returns a boolean
@@ -129,7 +130,7 @@ class Message:
         404 - it is not
         """
         url = BLACKLIST_URL
-        PARAMS = {'phone': self.phone}
+        PARAMS = {'phone': self.phone()}
         req = requests.get(url, params=PARAMS)
         return req.status_code == 200
 
@@ -152,6 +153,7 @@ class Message:
         return self.valid
 
     def phone(self):
+        """ Returns the phone number (DDD + NUMBER) """
         return str(self.ddd) + str(self.number)
 
     @property
