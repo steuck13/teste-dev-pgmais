@@ -25,10 +25,9 @@ brokers['NEXTEL'] = 3
 
 # Decorator to check function args
 def accepts(*types):
-    print('asdfasdfasdfasddfasdfasfds')
-    print(types)
     def check_accepts(f):
-        assert  len(types) == (f.__code__.co_argcount)
+        assert len(types) == (f.__code__.co_argcount)
+
         def new_function(*args, **kwds):
             for(a, t) in zip(args, types):
                 ret_str = f"arg {a} does not match {t}"
@@ -40,20 +39,21 @@ def accepts(*types):
 
 # Message class
 class Message:
+
     number_pattern = r'(9)([7-9])\d{7}'
     ddd_pattern = r'\d\d'
     time_format = '%H:%M:%S'
 
-    def __init__ (self, id, ddd, number, cpny, schedule, msg):
+    def __init__(self, msg_id, ddd, number, cpny, schedule, content):
         # Start all messages with valid state
         self.valid = True
 
-        self._id = id
-        self._ddd = ddd
-        self._number = number
-        self._cpny = cpny
-        self._schedule = schedule
-        self._msg = msg
+        self.msg_id = msg_id
+        self.ddd = ddd
+        self.number = number
+        self.cpny = cpny
+        self.schedule = schedule
+        self.content = content
 
     # Creates a message from a comma separated string
     @classmethod
@@ -64,16 +64,14 @@ class Message:
         string -- a string containing comma separated values
         """
         try:
-            msg = msg.split(';')
-
-            id = msg[0]
-            ddd = int(msg[1])
-            number = int(msg[2])
-            cpny = msg[3]
-            schedule = msg[4]
-            msg = ''.join(msg[5:len(msg)])
-
-            return cls(id, ddd, number, cpny, schedule, msg)
+            args = msg.split(';')
+            msg_id = args[0]
+            ddd = int(args[1])
+            number = int(args[2])
+            cpny = args[3]
+            schedule = args[4]
+            content = ''.join(args[5:])
+            return cls(msg_id, ddd, number, cpny, schedule, content)
         except Exception as inst:
             print(type(inst))
             print(inst.args)
@@ -84,7 +82,7 @@ class Message:
 
         Checks if the ddd is valid
         """
-        is_ddd = self._ddd in ddd_list
+        is_ddd = self.ddd in ddd_list
 
         return is_ddd
 
@@ -94,26 +92,26 @@ class Message:
         Checks if the given phone number (without ddd) is valid. If the
         number dont match the pattern we'll return False instead of None
         """
+        match = re.match(Message.number_pattern, str(self.number))
+        is_number = True if match else False
 
-        is_number = True if (re.match(Message.number_pattern, str(self._number))) else False
-        
         return is_number
-    
+
     def _isfrom_sp(self):
         """ Returns a boolean
 
         Retuns True if the DDD is from Sao Paulo
         """
-        return self._ddd == 11
-    
+        return self.ddd == 11
+
     def _isvalid_schedule(self):
         """ Returns a boolean
 
         Returns True if the message's scheduled hour is a valid one
         """
-        date_limit = datetime.strptime('19:59:59' , Message.time_format)
+        date_limit = datetime.strptime('19:59:59', Message.time_format)
 
-        date = datetime.strptime(self._schedule, Message.time_format)
+        date = datetime.strptime(self.schedule, Message.time_format)
         return date < date_limit
 
     def _isvalid_size(self):
@@ -121,8 +119,8 @@ class Message:
 
         Returns True if the message respect the size limit
         """
-        return len(self._msg) < 141
-        
+        return len(self.content) < 141
+
     def _ison_blacklist(self):
         """Returns a boolean
 
@@ -132,7 +130,7 @@ class Message:
         """
         url = BLACKLIST_URL
         PARAMS = {'phone': self.phone}
-        req = requests.get( url, params=PARAMS)
+        req = requests.get(url, params=PARAMS)
         return req.status_code == 200
 
     def _validate_number(self):
@@ -142,7 +140,7 @@ class Message:
         """ Retuns a boolean
 
         Checks all message parameters and set the message
-        state to True if everything is valid, or False if 
+        state to True if everything is valid, or False if
         some of the parameters is not valid
         """
         number = self._validate_number()
@@ -154,16 +152,27 @@ class Message:
         return self.valid
 
     def phone(self):
-        return str(self._ddd) + str(self._number)
+        return str(self.ddd) + str(self.number)
 
+    @property
     def ddd(self):
         """ Returns the integer value saved in _ddd"""
         return self._ddd
 
+    @ddd.setter
+    def ddd(self, ddd):
+        """ Sets an integer value to _ddd"""
+        self._ddd = ddd  
+
+    @property
+    def msg_id(self):
+        """ REtuns the id of this message """
+        return self._msg_id
+    
+    @msg_id.setter
+    def msg_id(self, msg_id):
+        self._msg_id = msg_id
+
     def broker(self):
         """ Returns the number of the broken for the given company"""
-        return brokers[self._cpny]
-
-    def msg_id(self):
-        """ Returns the id of this message """
-        return self._id
+        return brokers[self.cpny]
